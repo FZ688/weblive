@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.7</version>
+        <relativePath/>
+    </parent>
+    <groupId>com.fz</groupId>
+    <artifactId>weblive</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>weblive-common</module>
+        <module>weblive-admin</module>
+        <module>weblive-web</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <skipTests>true</skipTests>
+
+        <springboot.version>3.5.7</springboot.version>
+<!--        <mybatis.version>1.3.2</mybatis.version>-->
+        <mybatis-plus.version>3.5.14</mybatis-plus.version>
+        <mybatis-spring.version>3.0.3</mybatis-spring.version>
+        <mysql.version>8.0.23</mysql.version>
+        <aspectjweaver.version>1.9.3</aspectjweaver.version>
+        <fastjson.version>1.2.83</fastjson.version>
+        <commons.lang3.version>3.4</commons.lang3.version>
+        <commons.csv.version>1.2</commons.csv.version>
+        <commons.codec.version>1.9</commons.codec.version>
+        <commons.io.version>2.5</commons.io.version>
+        <lombok.version>1.18.22</lombok.version>
+        <logback.version>1.5.14</logback.version>
+        <captcha.verion>1.6.2</captcha.verion>
+        <nashorn.version>15.4</nashorn.version>
+        <spring-kafka.version>3.2.1</spring-kafka.version>
+        <es.version>3.5.7</es.version>
+        <sa-token.version>1.44.0</sa-token.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+                <version>${springboot.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-classic</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>ch.qos.logback</groupId>
+                        <artifactId>logback-core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mybatis</groupId>
+                <artifactId>mybatis-spring</artifactId>
+                <version>${mybatis-spring.version}</version>
+            </dependency>
+            <!-- 数据库-->
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql.version}</version>
+            </dependency>
+
+            <!-- 日志版本 -->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <!--切面-->
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectjweaver.version}</version>
+            </dependency>
+
+            <!--fastjson-->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang3.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons.codec.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons.io.version}</version>
+            </dependency>
+
+            <!---es search-->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+                <version>${es.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.whvcse</groupId>
+                <artifactId>easy-captcha</artifactId>
+                <version>${captcha.verion}</version>
+            </dependency>
+
+            <!--添加 nashorn-core恢复 ScriptEngine 支持,因为easy-captcha -->
+            <dependency>
+                <groupId>org.openjdk.nashorn</groupId>
+                <artifactId>nashorn-core</artifactId>
+                <version>${nashorn.version}</version>
+            </dependency>
+
+            <!-- https://mvnrepository.com/artifact/org.springframework.kafka/spring-kafka -->
+            <dependency>
+                <groupId>org.springframework.kafka</groupId>
+                <artifactId>spring-kafka</artifactId>
+                <version>${spring-kafka.version}</version>
+            </dependency>
+
+            <!-- Sa-Token 权限认证，在线文档：https://sa-token.cc -->
+            <dependency>
+                <groupId>cn.dev33</groupId>
+                <artifactId>sa-token-spring-boot3-starter</artifactId>
+                <version>${sa-token.version}</version>
+            </dependency>
+        </dependencies>
+
+    </dependencyManagement>
+</project>
