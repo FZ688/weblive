@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fz.mappers.SysRoleMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.fz.entity.po.SysRole">
+        <id column="id" jdbcType="BIGINT" property="id" />
+        <result column="code" jdbcType="VARCHAR" property="code" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id,code,name
+    </sql>
+
+
+    <select id="selectRolesCodeByUserId" resultType="java.lang.String">
+        select r.code from sys_role r left join role_user ur on r.id = ur.role_id where ur.user_id = #{userId}
+    </select>
+</mapper>
