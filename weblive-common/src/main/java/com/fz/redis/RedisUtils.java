@@ -65,6 +65,14 @@ public class RedisUtils<V> {
         return redisTemplate.hasKey(key);
     }
 
+
+    /**
+     * 设置缓存并设置过期时间
+     */
+    public void set(String key, V value, long timeout, TimeUnit unit) {
+        redisTemplate.opsForValue().set(key, value, timeout, unit);
+    }
+
     /**
      * 普通缓存放入并设置时间
      *
@@ -99,6 +107,18 @@ public class RedisUtils<V> {
         }
     }
 
+    /**
+     * 设置过期时间
+     */
+    public void expire(String key, long timeout, TimeUnit unit) {
+        try {
+            if (timeout > 0) {
+                redisTemplate.expire(key, timeout, unit);
+            }
+        } catch (Exception e) {
+            logger.error("设置redisKey:{}过期时间失败", key);
+        }
+    }
 
     public List<V> getQueueList(String key) {
         return redisTemplate.opsForList().range(key, 0, -1);

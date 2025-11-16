@@ -1,8 +1,9 @@
 package com.fz.web.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.annotation.RecordUserMessage;
 import com.fz.entity.enums.MessageTypeEnum;
-import com.fz.web.annotation.GlobalInterceptor;
 import com.fz.entity.constants.Constants;
 import com.fz.entity.dto.TokenUserInfoDto;
 import com.fz.entity.enums.CommentTopTypeEnum;
@@ -25,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -52,7 +52,6 @@ public class VideoCommentController extends ABaseController{
 
     /**
      * @description: 发表评论
-     * @param request
      * @param videoId 哪个视频
      * @param content 评论内容
      * @param imgPath 评论可以是图像
@@ -62,14 +61,13 @@ public class VideoCommentController extends ABaseController{
      * 2025/1/8 14:32
      */
     @RequestMapping("/postComment")
-    @GlobalInterceptor(checkLogin = true)
+    @SaCheckLogin
     @RecordUserMessage(messageType = MessageTypeEnum.COMMENT)
-    public ResponseVO postComment(HttpServletRequest request,
-                                  @NotEmpty String videoId,
+    public ResponseVO postComment(@NotEmpty String videoId,
                                   @NotEmpty @Size(max = 500) String content,
                                   @Size(max = 50) String imgPath,
                                   Integer replyCommentId){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         VideoComment videoComment = new VideoComment();
         videoComment.setUserId(tokenUserInfoDto.getUserId());
         videoComment.setAvatar(tokenUserInfoDto.getAvatar());
@@ -85,7 +83,6 @@ public class VideoCommentController extends ABaseController{
 
     /**
      * @description: 加载评论区
-     * @param request
      * @param videoId 视频id
      * @param pageNo 页号
      * @param orderType 根据什么排序
@@ -94,8 +91,7 @@ public class VideoCommentController extends ABaseController{
      * 2025/1/8 15:55
      */
     @RequestMapping("/loadComment")
-    public ResponseVO loadComment(HttpServletRequest request,
-                                  @NotEmpty String videoId,
+    public ResponseVO loadComment(@NotEmpty String videoId,
                                   Integer pageNo,
                                   Integer orderType){
 
@@ -137,12 +133,11 @@ public class VideoCommentController extends ABaseController{
 
         // 获取用户对评论的行为
         List<UserAction> userActionList = new ArrayList<>();
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
         // 如果登录了
-        if (tokenUserInfoDto != null){
+        if (StpUtil.isLogin()) {
             // 取出来
             UserActionQuery userActionQuery = new UserActionQuery();
-            userActionQuery.setUserId(tokenUserInfoDto.getUserId());
+            userActionQuery.setUserId(StpUtil.getLoginIdAsString());
             userActionQuery.setVideoId(videoId);
             userActionQuery.setActionTypeArray(new Integer[]{
                     UserActionTypeEnum.COMMENT_LIKE.getType(),
@@ -157,6 +152,7 @@ public class VideoCommentController extends ABaseController{
 
         return getSuccessResponseVO(resultVO);
     }
+
     /**
      * @description: 查询置顶评论
      * @param videoId 视频id
@@ -177,39 +173,39 @@ public class VideoCommentController extends ABaseController{
 
     /**
      * @description: 将评论置顶
-     * @param commentId
+     * @param commentId 评论id
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/10 22:55
      */
     @RequestMapping("/topComment")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO topComment(HttpServletRequest request,@NotNull Integer commentId){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        videoCommentService.topComment(commentId,tokenUserInfoDto.getUserId());
+    @SaCheckLogin
+    public ResponseVO topComment(@NotNull Integer commentId){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        videoCommentService.topComment(commentId, StpUtil.getLoginIdAsString());
         return getSuccessResponseVO(null);
     }
 
     /**
      * @description: 取消置顶评论
-     * @param commentId
+     * @param commentId 评论id
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/10 22:56
      */
     @RequestMapping("/cancelTopComment")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO cancelTopComment(HttpServletRequest request,@NotNull Integer commentId){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        videoCommentService.cancelTopComment(commentId,tokenUserInfoDto.getUserId());
+    @SaCheckLogin
+    public ResponseVO cancelTopComment(@NotNull Integer commentId){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        videoCommentService.cancelTopComment(commentId,StpUtil.getLoginIdAsString());
         return getSuccessResponseVO(null);
     }
 
     @RequestMapping("/userDelComment")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO deleteComment(HttpServletRequest request,@NotNull Integer commentId){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        videoCommentService.deleteComment(commentId,tokenUserInfoDto.getUserId());
+    @SaCheckLogin
+    public ResponseVO deleteComment(@NotNull Integer commentId){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        videoCommentService.deleteComment(commentId,StpUtil.getLoginIdAsString());
         return getSuccessResponseVO(null);
     }
 }

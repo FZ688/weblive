@@ -1,8 +1,12 @@
 package com.fz.controller;
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
 import com.fz.entity.enums.ResponseCodeEnum;
 import com.fz.entity.vo.ResponseVO;
 import com.fz.exception.BusinessException;
 
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -58,11 +62,49 @@ public class AGlobalExceptionHandlerController {
             ajaxResponse.setCode(ResponseCodeEnum.CODE_600.getCode());
             ajaxResponse.setInfo(ResponseCodeEnum.CODE_600.getMsg());
             ajaxResponse.setStatus(STATUC_ERROR);
+        }else if (e instanceof NotLoginException) {
+            NotLoginException notLoginException = (NotLoginException) e;
+            ajaxResponse.setCode(ResponseCodeEnum.CODE_901.getCode());
+            ajaxResponse.setInfo(buildNotLoginMessage(notLoginException));
+            ajaxResponse.setStatus(STATUC_ERROR);
+        } else if (e instanceof NotPermissionException) {
+            ajaxResponse.setCode(ResponseCodeEnum.CODE_902.getCode());
+            ajaxResponse.setInfo(ResponseCodeEnum.CODE_902.getMsg());
+            ajaxResponse.setStatus(STATUC_ERROR);
+        } else if (e instanceof NotRoleException) {
+            ajaxResponse.setCode(ResponseCodeEnum.CODE_903.getCode());
+            ajaxResponse.setInfo(ResponseCodeEnum.CODE_903.getMsg());
+            ajaxResponse.setStatus(STATUC_ERROR);
         } else {
             ajaxResponse.setCode(ResponseCodeEnum.CODE_500.getCode());
             ajaxResponse.setInfo(ResponseCodeEnum.CODE_500.getMsg());
             ajaxResponse.setStatus(STATUC_ERROR);
         }
         return ajaxResponse;
+    }
+
+    private String buildNotLoginMessage(NotLoginException e) {
+        if (NotLoginException.NOT_TOKEN.equals(e.getType())) {
+            return "未能读取到有效的登录凭证";
+        }
+        if (NotLoginException.INVALID_TOKEN.equals(e.getType())) {
+            return "登录凭证无效";
+        }
+        if (NotLoginException.TOKEN_TIMEOUT.equals(e.getType())) {
+            return "登录凭证已过期";
+        }
+        if (NotLoginException.BE_REPLACED.equals(e.getType())) {
+            return "当前账号已在其他设备登录";
+        }
+        if (NotLoginException.KICK_OUT.equals(e.getType())) {
+            return "账号已被管理员强制下线";
+        }
+        if (NotLoginException.TOKEN_FREEZE.equals(e.getType())) {
+            return "账号已被冻结，请联系管理员";
+        }
+        if (NotLoginException.NO_PREFIX.equals(e.getType())) {
+            return "登录凭证缺少必要的前缀";
+        }
+        return ResponseCodeEnum.CODE_901.getMsg();
     }
 }

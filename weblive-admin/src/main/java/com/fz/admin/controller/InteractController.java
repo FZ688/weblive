@@ -1,5 +1,6 @@
 package com.fz.admin.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.fz.entity.po.VideoComment;
 import com.fz.entity.po.VideoDanmu;
 import com.fz.entity.query.VideoCommentQuery;
@@ -52,6 +53,7 @@ public class InteractController extends ABaseController{
         return getSuccessResponseVO(resultVO);
     }
 
+    @SaCheckRole("admin")
     @RequestMapping("/delComment")
     public ResponseVO delComment(@NotNull Integer commentId){
         videoCommentService.deleteComment(commentId,null);
@@ -71,6 +73,7 @@ public class InteractController extends ABaseController{
         return getSuccessResponseVO(resultVO);
     }
 
+    @SaCheckRole("admin")
     @RequestMapping("/delDanmu")
     public ResponseVO delDanmu(@NotNull Integer danmuId){
         videoDanmuService.deleteDanmu(danmuId,null);

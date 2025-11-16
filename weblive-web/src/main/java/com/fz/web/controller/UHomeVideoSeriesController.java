@@ -1,7 +1,7 @@
 package com.fz.web.controller;
 
-import com.fz.web.annotation.GlobalInterceptor;
-import com.fz.entity.dto.TokenUserInfoDto;
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.entity.enums.ResponseCodeEnum;
 import com.fz.entity.po.*;
 import com.fz.entity.query.*;
@@ -10,7 +10,6 @@ import com.fz.entity.vo.UserVideoSeriesDetailVO;
 import com.fz.exception.BusinessException;
 import com.fz.service.*;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @Author: fz
@@ -42,7 +40,7 @@ public class UHomeVideoSeriesController extends ABaseController {
 
     /**
      * @description: 加载视频合集
-     * @param userId
+     * @param userId 用户id
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/12 20:47
@@ -55,7 +53,6 @@ public class UHomeVideoSeriesController extends ABaseController {
 
     /**
      * @description: 新增或修改视频列表(这里代指为视频分类)
-     * @param request
      * @param seriesId 有值则为修改 否则是新增
      * @param seriesName 新增的分类名称
      * @param seriesDescription 分类描述
@@ -65,15 +62,14 @@ public class UHomeVideoSeriesController extends ABaseController {
      * 2025/1/12 20:49
      */
     @RequestMapping("/saveVideoSeries")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO saveVideoSeries(HttpServletRequest request,
-                                      Integer seriesId,
+    @SaCheckLogin
+    public ResponseVO saveVideoSeries(Integer seriesId,
                                       @NotEmpty @Size(max = 100) String seriesName,
                                       @Size(max = 200) String seriesDescription,
                                       String videoIds){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         UserVideoSeries videoSeries = new UserVideoSeries();
-        videoSeries.setUserId(tokenUserInfoDto.getUserId());
+        videoSeries.setUserId(StpUtil.getLoginIdAsString());
         videoSeries.setSeriesId(seriesId);
         videoSeries.setSeriesName(seriesName);
         videoSeries.setSeriesDescription(seriesDescription);
@@ -86,31 +82,30 @@ public class UHomeVideoSeriesController extends ABaseController {
 
     /**
      * @description: 加载所有视频
-     * @param request
      * @param seriesId 可选 有则是加载分类下的所有视频 否则就是加载自己的所有视频
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/12 21:54
      */
     @RequestMapping("/loadAllVideo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO loadAllVideo(HttpServletRequest request,Integer seriesId){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+    @SaCheckLogin
+    public ResponseVO loadAllVideo(Integer seriesId){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         VideoInfoQuery videoInfoQuery = new VideoInfoQuery();
         if (seriesId != null){
             UserVideoSeriesVideoQuery videoSeriesVideoQuery = new UserVideoSeriesVideoQuery();
             // 以下的目的是排除当前分类的视频 因为你要添加的肯定是不是该分类的视频
-            videoSeriesVideoQuery.setUserId(tokenUserInfoDto.getUserId());
+            videoSeriesVideoQuery.setUserId(StpUtil.getLoginIdAsString());
             videoSeriesVideoQuery.setSeriesId(seriesId);
             List<UserVideoSeriesVideo> seriesVideoList = userVideoSeriesVideoService.findListByParam(videoSeriesVideoQuery);
             // 获取当前分类下的视频id集合
             // 这里的目的是为了排除当前分类下的视频
             List<String> seriesVideoIdList = seriesVideoList.stream()
-                    .map(i -> i.getVideoId())
-                    .collect(Collectors.toList());
+                    .map(UserVideoSeriesVideo::getVideoId)
+                    .toList();
             videoInfoQuery.setExcludeVideoIdArray(seriesVideoIdList.toArray(new String[seriesVideoIdList.size()]));
         }
-        videoInfoQuery.setUserId(tokenUserInfoDto.getUserId());
+        videoInfoQuery.setUserId(StpUtil.getLoginIdAsString());
         List<VideoInfo> videoInfoList = videoInfoService.findListByParam(videoInfoQuery);
 
         return getSuccessResponseVO(videoInfoList);
@@ -143,7 +138,6 @@ public class UHomeVideoSeriesController extends ABaseController {
 
     /**
      * @description: 新增分类中的视频
-     * @param request
      * @param seriesId
      * @param videoIds
      * @return com.fz.entity.vo.ResponseVO
@@ -151,60 +145,57 @@ public class UHomeVideoSeriesController extends ABaseController {
      * 2025/1/13 13:09
      */
     @RequestMapping("/saveSeriesVideo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO saveSeriesDetail(HttpServletRequest request,@NotNull Integer seriesId,@NotEmpty String videoIds){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        this.userVideoSeriesService.saveSeriesVideo(tokenUserInfoDto.getUserId(),seriesId,videoIds);
+    @SaCheckLogin
+    public ResponseVO saveSeriesDetail(@NotNull Integer seriesId,@NotEmpty String videoIds){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        this.userVideoSeriesService.saveSeriesVideo(StpUtil.getLoginIdAsString(),seriesId,videoIds);
 
         return getSuccessResponseVO(null);
     }
 
     /**
      * @description: 删除分类中的视频
-     * @param request
-     * @param seriesId
-     * @param videoId
+     * @param seriesId 分类id
+     * @param videoId 视频id
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/13 13:10
      */
     @RequestMapping("/delSeriesVideo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO delSeriesVideo(HttpServletRequest request,@NotNull Integer seriesId,@NotEmpty String videoId){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        this.userVideoSeriesService.delSeriesVideo(tokenUserInfoDto.getUserId(),seriesId,videoId);
+    @SaCheckLogin
+    public ResponseVO delSeriesVideo(@NotNull Integer seriesId,@NotEmpty String videoId){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        this.userVideoSeriesService.delSeriesVideo(StpUtil.getLoginIdAsString(),seriesId,videoId);
         return getSuccessResponseVO(null);
     }
 
     /**
      * @description: 删除视频集合
-     * @param request
-     * @param seriesId
+     * @param seriesId 集合id
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/13 13:20
      */
     @RequestMapping("/delVideoSeries")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO delVideoSeries(HttpServletRequest request,@NotNull Integer seriesId){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        this.userVideoSeriesService.delVideoSeries(tokenUserInfoDto.getUserId(),seriesId);
+    @SaCheckLogin
+    public ResponseVO delVideoSeries(@NotNull Integer seriesId){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        this.userVideoSeriesService.delVideoSeries(StpUtil.getLoginIdAsString(),seriesId);
         return getSuccessResponseVO(null);
     }
 
     /**
      * @description: 改变分类的顺序
-     * @param request
      * @param seriesIds 目前的分类顺序
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/13 13:53
      */
     @RequestMapping("/changeVideoSeriesSort")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO changeVideoSeriesSort(HttpServletRequest request,@NotEmpty String seriesIds){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        this.userVideoSeriesService.changeVideoSeriesSort(tokenUserInfoDto.getUserId(),seriesIds);
+    @SaCheckLogin
+    public ResponseVO changeVideoSeriesSort(@NotEmpty String seriesIds){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        this.userVideoSeriesService.changeVideoSeriesSort(StpUtil.getLoginIdAsString(),seriesIds);
         return getSuccessResponseVO(null);
     }
 

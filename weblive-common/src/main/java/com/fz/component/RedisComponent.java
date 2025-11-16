@@ -1,5 +1,6 @@
 package com.fz.component;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.entity.config.AppConfig;
 import com.fz.entity.constants.Constants;
 import com.fz.entity.dto.SysSettingDto;
@@ -17,6 +18,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.*;
+
+import static com.fz.entity.constants.Constants.*;
 
 /**
  * @Author: fz
@@ -41,7 +44,7 @@ public class RedisComponent {
         // 随机一个验证码的key,防止不同用户使用同一个key导致验证码的覆盖
         String checkCodeKey = UUID.randomUUID().toString();
         // 将验证码存入redis
-        redisUtils.setex(Constants.REDIS_KEY_CHECK_CODE + checkCodeKey, code, Constants.REDIS_KEY_EXPIRES_ONE_MIN * 10);
+        redisUtils.setex(REDIS_KEY_CHECK_CODE + checkCodeKey, code, REDIS_KEY_EXPIRES_ONE_MIN * 10);
         return checkCodeKey;
     }
 
@@ -53,7 +56,7 @@ public class RedisComponent {
      * 2024/12/5 12:07
      */
     public String getCheckCode(String checkCoedKey) {
-        return (String) redisUtils.get(Constants.REDIS_KEY_CHECK_CODE + checkCoedKey);
+        return (String) redisUtils.get(REDIS_KEY_CHECK_CODE + checkCoedKey);
     }
 
     /**
@@ -63,7 +66,32 @@ public class RedisComponent {
      * 2024/12/5 15:54
      */
     public void cleanCheckCode(String checkCodeKey) {
-        redisUtils.delete(Constants.REDIS_KEY_CHECK_CODE + checkCodeKey);
+        redisUtils.delete(REDIS_KEY_CHECK_CODE + checkCodeKey);
+    }
+
+    public void saveEmailCode(String email, String code) {
+        redisUtils.setex(REDIS_KEY_EMAIL_CODE + email, code, REDIS_KEY_EXPIRES_ONE_MIN * 5L);
+    }
+
+    public String getEmailCode(String email) {
+        return (String) redisUtils.get(REDIS_KEY_EMAIL_CODE + email);
+    }
+
+    public void cleanEmailCode(String email) {
+        redisUtils.delete(REDIS_KEY_EMAIL_CODE + email);
+    }
+
+    public boolean tryAcquireEmailCodeLock(String email) {
+        String lockKey = REDIS_KEY_EMAIL_CODE_LIMIT + email;
+        if (redisUtils.keyExists(lockKey)) {
+            return false;
+        }
+        redisUtils.setex(lockKey, email, REDIS_KEY_EXPIRES_ONE_MIN);
+        return true;
+    }
+
+    public void cleanEmailCodeLock(String email) {
+        redisUtils.delete(REDIS_KEY_EMAIL_CODE_LIMIT + email);
     }
 
     /**
@@ -73,12 +101,10 @@ public class RedisComponent {
      * 2024/12/5 16:00
      */
     public void saveTokenInfo(TokenUserInfoDto tokenUserInfoDto) {
-        // UUID作为键
-        String token = UUID.randomUUID().toString();
+        String token = StpUtil.getTokenValue();
+        tokenUserInfoDto.setToken(token);
         // 设置过期时间
         tokenUserInfoDto.setExpireAt(System.currentTimeMillis() + Constants.REDIS_KEY_EXPIRES_SEVEN_DAY);
-        // 设置token
-        tokenUserInfoDto.setToken(token);
         // 将token信息存入redis
         redisUtils.setex(Constants.REDIS_KEY_TOKEN_WEB + token, tokenUserInfoDto, Constants.REDIS_KEY_EXPIRES_SEVEN_DAY);
     }

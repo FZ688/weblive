@@ -1,6 +1,6 @@
 package com.fz.web.controller;
-import com.fz.web.annotation.GlobalInterceptor;
-import com.fz.entity.dto.TokenUserInfoDto;
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.entity.enums.ResponseCodeEnum;
 import com.fz.entity.enums.VideoStatusEnum;
 import com.fz.entity.po.VideoInfoFilePost;
@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -37,6 +36,7 @@ import java.util.List;
 @RequestMapping("/ucenter")
 @Validated
 @Slf4j
+@SaCheckLogin
 public class UCenterPostController extends ABaseController{
     @Resource
     private VideoInfoPostService videoInfoPostService;
@@ -47,7 +47,6 @@ public class UCenterPostController extends ABaseController{
 
     /**
      * @description: 发布视频接口
-     * @param request HttpServletRequest
      * @param videoId 视频id
      * @param videoCover 视频封面
      * @param videoName 视频标题
@@ -63,8 +62,7 @@ public class UCenterPostController extends ABaseController{
      * 2024/12/10 14:06
      */
     @RequestMapping("/postVideo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO postVideo(HttpServletRequest request, String videoId,
+    public ResponseVO postVideo(String videoId,
                                 @NotEmpty String videoCover,
                                 @NotEmpty @Size(max = 100) String videoName,
                                 @NotNull Integer pCategoryId,
@@ -75,7 +73,7 @@ public class UCenterPostController extends ABaseController{
                                 @Size(max = 2000) String introduction,
                                 @Size(max = 3) String interaction,
                                 @NotEmpty String uploadFileList){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         List<VideoInfoFilePost> uploadFileList1 = JsonUtils.convertJsonArray2List(uploadFileList, VideoInfoFilePost.class);
 
         VideoInfoPost videoInfoPost = new VideoInfoPost();
@@ -92,7 +90,7 @@ public class UCenterPostController extends ABaseController{
         videoInfoPost.setIntroduction(introduction);
         videoInfoPost.setInteraction(interaction);
 
-        videoInfoPost.setUserId(tokenUserInfoDto.getUserId());
+        videoInfoPost.setUserId(StpUtil.getLoginIdAsString());
         videoInfoPostService.saveVideoInfo(videoInfoPost,uploadFileList1);
         return getSuccessResponseVO(null);
     }
@@ -105,11 +103,10 @@ public class UCenterPostController extends ABaseController{
      * 2024/12/9 16:45
      */
     @RequestMapping("/loadVideoList")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO loadVideoPost(HttpServletRequest request,Integer status,Integer pageNo,String videoNameFuzzy){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+    public ResponseVO loadVideoPost(Integer status,Integer pageNo,String videoNameFuzzy){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         VideoInfoPostQuery videoInfoPostQuery = new VideoInfoPostQuery();
-        videoInfoPostQuery.setUserId(tokenUserInfoDto.getUserId());
+        videoInfoPostQuery.setUserId(StpUtil.getLoginIdAsString());
         videoInfoPostQuery.setPageNo(pageNo);
         videoInfoPostQuery.setOrderBy("v.create_time asc");
         if (status!=null){
@@ -128,17 +125,15 @@ public class UCenterPostController extends ABaseController{
 
     /**
      * 获取视频总数
-     * @param 
      * @return 
      * @author fz
      * 2024/12/9 17:35
      */
     @RequestMapping("/getVideoCountInfo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO getVideoCountInfo(HttpServletRequest request){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+    public ResponseVO getVideoCountInfo(){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         VideoInfoPostQuery videoInfoPostQuery = new VideoInfoPostQuery();
-        videoInfoPostQuery.setUserId(tokenUserInfoDto.getUserId());
+        videoInfoPostQuery.setUserId(StpUtil.getLoginIdAsString());
 
         //查审核通过的数量
         videoInfoPostQuery.setStatus(VideoStatusEnum.STATUS3.getStatus());
@@ -163,19 +158,17 @@ public class UCenterPostController extends ABaseController{
 
     /**
      * @description: 获取视频的信息
-     * @param request
      * @param videoId
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/13 16:04
      */
     @RequestMapping("/getVideoByVideoId")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO getVideoByVideoId(HttpServletRequest request,@NotEmpty String videoId){
+    public ResponseVO getVideoByVideoId(@NotEmpty String videoId){
         // 获取视频信息
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         VideoInfoPost videoInfoPost = videoInfoPostService.getVideoInfoPostByVideoId(videoId);
-        if (videoInfoPost == null || !videoInfoPost.getUserId().equals(tokenUserInfoDto.getUserId())){
+        if (videoInfoPost == null || !videoInfoPost.getUserId().equals(StpUtil.getLoginIdAsString())){
             throw new BusinessException(ResponseCodeEnum.CODE_404);
         }
         // 获取分p信息
@@ -192,28 +185,25 @@ public class UCenterPostController extends ABaseController{
 
     /**
      * @description: 保存视频的交互信息
-     * @param request
-     * @param videoId
-     * @param interaction
+     * @param videoId 视频id
+     * @param interaction 互动设置(关闭弹幕/关闭评论）
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/13 16:23
      */
     @RequestMapping("/saveVideoInteraction")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO saveVideoInteraction(HttpServletRequest request,@NotEmpty String videoId,String interaction){
+    public ResponseVO saveVideoInteraction(@NotEmpty String videoId,String interaction){
         // 获取视频信息
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        videoInfoService.changeInteraction(videoId,tokenUserInfoDto.getUserId(),interaction);
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        videoInfoService.changeInteraction(videoId,StpUtil.getLoginIdAsString(),interaction);
         return getSuccessResponseVO(null);
     }
 
     @RequestMapping("/deleteVideo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO saveVideoInteraction(HttpServletRequest request,@NotEmpty String videoId){
+    public ResponseVO saveVideoInteraction(@NotEmpty String videoId){
         // 获取视频信息
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        videoInfoService.deleteVideo(videoId,tokenUserInfoDto.getUserId());
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+        videoInfoService.deleteVideo(videoId,StpUtil.getLoginIdAsString());
         return getSuccessResponseVO(null);
     }
 

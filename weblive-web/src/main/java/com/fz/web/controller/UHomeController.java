@@ -1,6 +1,7 @@
 package com.fz.web.controller;
 
-import com.fz.web.annotation.GlobalInterceptor;
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.entity.constants.Constants;
 import com.fz.entity.dto.TokenUserInfoDto;
 import com.fz.entity.enums.PageSize;
@@ -27,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.*;
 
 /**
@@ -51,16 +51,18 @@ public class UHomeController extends ABaseController {
 
     /**
      * @description: 获取主页用户信息
-     * @param request
      * @param userId 访问该用户
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/11 13:34
      */
     @RequestMapping("/getUserInfo")
-    public ResponseVO getUserInfo(HttpServletRequest request,@NotEmpty String userId){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-        UserInfo userInfo = userInfoService.getUserDetailInfo(tokenUserInfoDto == null ? null : tokenUserInfoDto.getUserId(), userId);
+    public ResponseVO getUserInfo(@NotEmpty String userId){
+        String currentUserId = null;
+        if (StpUtil.isLogin()) {
+            currentUserId = StpUtil.getLoginIdAsString();
+        }
+        UserInfo userInfo = userInfoService.getUserDetailInfo(currentUserId, userId);
 
         UserInfoVO userInfoVO = CopyTools.copy(userInfo, UserInfoVO.class);
 
@@ -69,7 +71,6 @@ public class UHomeController extends ABaseController {
 
     /**
      * @description: 更新主页信息
-     * @param request
      * @param nickName 昵称
      * @param avatar 头像
      * @param sex 性别
@@ -82,16 +83,15 @@ public class UHomeController extends ABaseController {
      * 2025/1/11 14:00
      */
     @RequestMapping("/updateUserInfo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO updateUserInfo(HttpServletRequest request,
-                                     @NotEmpty @Size(max = 20) String nickName,
+    @SaCheckLogin
+    public ResponseVO updateUserInfo(@NotEmpty @Size(max = 20) String nickName,
                                      @NotEmpty @Size(max = 100) String avatar,
                                      @NotNull Integer sex,
                                      @Size(max = 10) String birthday,
                                      @Size(max = 150) String school,
                                      @Size(max = 80) String personIntroduction,
                                      @Size(max = 300) String noticeInfo){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         UserInfo userInfo = new UserInfo();
         userInfo.setUserId(tokenUserInfoDto.getUserId());
         userInfo.setNickName(nickName);
@@ -108,68 +108,63 @@ public class UHomeController extends ABaseController {
 
     /**
      * @description: 更换主题
-     * @param request
-     * @param theme
+     * @param theme 主题图片序号
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/11 15:01
      */
     @RequestMapping("/saveTheme")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO saveTheme(HttpServletRequest request,
-                                @Min(1) @Max(10) @NotNull Integer theme){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+    @SaCheckLogin
+    public ResponseVO saveTheme(@Min(1) @Max(10) @NotNull Integer theme){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         UserInfo userInfo = new UserInfo();
         userInfo.setTheme(theme);
-        userInfoService.updateUserInfoByUserId(userInfo,tokenUserInfoDto.getUserId());
+        userInfoService.updateUserInfoByUserId(userInfo,StpUtil.getLoginIdAsString());
         return getSuccessResponseVO(null);
     }
 
     /**
      * @description: 关注
-     * @param request
-     * @param focusUserId
+     * @param focusUserId 被关注用户id
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/11 15:01
      */
     @RequestMapping("/focus")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO focus(HttpServletRequest request,String focusUserId){
-        userFocusService.focusUser(getTokenUserInfoDto(request).getUserId(),focusUserId);
+    @SaCheckLogin
+    public ResponseVO focus(String focusUserId){
+        userFocusService.focusUser(StpUtil.getLoginIdAsString(),focusUserId);
         return getSuccessResponseVO(null);
     }
 
     /**
      * @description: 取消关注
-     * @param request
      * @param focusUserId
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/11 15:02
      */
     @RequestMapping("/cancelFocus")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO cancelFocus(HttpServletRequest request,String focusUserId){
-        userFocusService.cancelFocus(getTokenUserInfoDto(request).getUserId(),focusUserId);
+    @SaCheckLogin
+    public ResponseVO cancelFocus(String focusUserId){
+        userFocusService.cancelFocus(StpUtil.getLoginIdAsString(),focusUserId);
         return getSuccessResponseVO(null);
     }
 
     /**
      * @description: 查询关注列表
-     * @param request
      * @param pageNo
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/11 15:33
      */
     @RequestMapping("/loadFocusList")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO loadFocusList(HttpServletRequest request,Integer pageNo){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+    @SaCheckLogin
+    public ResponseVO loadFocusList(Integer pageNo){
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
 
         UserFocusQuery userFocusQuery = new UserFocusQuery();
-        userFocusQuery.setUserId(tokenUserInfoDto.getUserId());
+        userFocusQuery.setUserId(StpUtil.getLoginIdAsString());
         userFocusQuery.setPageNo(pageNo);
         userFocusQuery.setOrderBy("focus_time desc");
         userFocusQuery.setQueryType(Constants.ZERO);
@@ -179,19 +174,18 @@ public class UHomeController extends ABaseController {
 
     /**
      * @description: 查询粉丝列表
-     * @param request
-     * @param pageNo
+     * @param pageNo 页号
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/11 16:58
      */
     @RequestMapping("/loadFansList")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO loadFansList(HttpServletRequest request,Integer pageNo){
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+    @SaCheckLogin
+    public ResponseVO loadFansList(Integer pageNo){
+        //tgTokenUserInfoDto tokenUserInfoDto = getCurrentUser();
 
         UserFocusQuery userFocusQuery = new UserFocusQuery();
-        userFocusQuery.setFocusUserId(tokenUserInfoDto.getUserId());
+        userFocusQuery.setFocusUserId(StpUtil.getLoginIdAsString());
         userFocusQuery.setPageNo(pageNo);
         userFocusQuery.setOrderBy("focus_time desc");
         userFocusQuery.setQueryType(Constants.ONE);
@@ -234,6 +228,7 @@ public class UHomeController extends ABaseController {
         PaginationResultVO<VideoInfo> resultVO = videoInfoService.findListByPage(videoInfoQuery);
         return getSuccessResponseVO(resultVO);
     }
+
     /**
      * @description: 查询收藏列表
      * @param userId 谁的主页

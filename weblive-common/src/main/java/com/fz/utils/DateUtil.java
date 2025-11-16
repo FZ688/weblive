@@ -67,4 +67,11 @@ public class DateUtil {
         }
         return dateList;
     }
+
+    /**
+     * 获取当前日期
+     */
+    public static Date getNowDate() {
+        return new Date();
+    }
 }

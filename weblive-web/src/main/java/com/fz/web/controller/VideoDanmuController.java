@@ -3,7 +3,7 @@ package com.fz.web.controller;
 import java.util.ArrayList;
 import java.util.Date;
 
-import com.fz.web.annotation.GlobalInterceptor;
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.fz.entity.constants.Constants;
 import com.fz.entity.po.VideoInfo;
 import com.fz.entity.query.VideoDanmuQuery;
@@ -48,7 +48,7 @@ public class VideoDanmuController extends ABaseController{
 	 * 2024/12/12 18:51
 	 */
 	@RequestMapping("/postDanmu")
-	@GlobalInterceptor(checkLogin = true)
+	@SaCheckLogin
 	public ResponseVO postDanmu(HttpServletRequest request,
 								@NotEmpty String videoId, @NotEmpty String fileId,
 								@NotEmpty @Size(max = 200) String text, @NotNull Integer mode,
@@ -61,7 +61,7 @@ public class VideoDanmuController extends ABaseController{
 		videoDanmu.setMode(mode);
 		videoDanmu.setColor(color);
 		videoDanmu.setTime(time);
-		videoDanmu.setUserId(getTokenUserInfoDto(request).getUserId());
+		videoDanmu.setUserId(getCurrentUser().getUserId());
 		videoDanmu.setPostTime(new Date());
 
 		videoDanmuService.saveVideoDamu(videoDanmu);

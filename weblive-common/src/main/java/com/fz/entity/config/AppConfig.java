@@ -7,6 +7,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 
+import java.util.List;
+
 /**
  * @Author: fz
  * @Date: 2024/12/5 23:23
@@ -46,4 +48,5 @@ public class AppConfig {
 
     @Value("classpath:elasticsearch/http_ca.crt")
     private Resource elasticCert;
+
 }

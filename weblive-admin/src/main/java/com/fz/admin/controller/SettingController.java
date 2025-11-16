@@ -1,5 +1,6 @@
 package com.fz.admin.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.fz.component.RedisComponent;
 import com.fz.entity.dto.SysSettingDto;
 import com.fz.entity.vo.ResponseVO;
@@ -29,6 +30,7 @@ public class SettingController extends ABaseController{
     }
 
 
+    @SaCheckRole("admin")
     @RequestMapping("/saveSetting")
     public ResponseVO saveSetting(SysSettingDto sysSettingDto){
         redisComponent.saveSettingDto(sysSettingDto);

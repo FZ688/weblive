@@ -3,6 +3,7 @@ package com.fz.service.impl;
 import java.util.Date;
 import java.util.List;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.component.RedisComponent;
 import com.fz.entity.constants.Constants;
 import com.fz.entity.dto.CountInfoDto;
@@ -20,7 +21,9 @@ import com.fz.exception.BusinessException;
 import com.fz.mappers.UserFocusMapper;
 import com.fz.mappers.VideoInfoMapper;
 import com.fz.utils.CopyTools;
+import com.fz.utils.EmailUtil;
 import jakarta.annotation.Resource;
+import jakarta.mail.MessagingException;
 import org.springframework.stereotype.Service;
 
 import com.fz.entity.enums.PageSize;
@@ -32,6 +35,9 @@ import com.fz.mappers.UserInfoMapper;
 import com.fz.service.UserInfoService;
 import com.fz.utils.StringTools;
 import org.springframework.transaction.annotation.Transactional;
+
+import static com.fz.entity.constants.Constants.CURRENT_USER;
+import static com.fz.entity.constants.Constants.TOKEN_WEB;
 
 
 /**
@@ -48,6 +54,9 @@ public class UserInfoServiceImpl implements UserInfoService {
 	private UserFocusMapper<UserFocus, UserFocusQuery> userFocusMapper;
 	@Resource
 	private VideoInfoMapper<VideoInfo, VideoInfoQuery> videoInfoMapper;
+    @Resource
+    private EmailUtil emailUtil;
+
 	/**
 	 * 根据条件查询列表
 	 */
@@ -198,7 +207,13 @@ public class UserInfoServiceImpl implements UserInfoService {
 	public Integer deleteUserInfoByNickName(String nickName) {
 		return this.userInfoMapper.deleteByNickName(nickName);
 	}
-	
+
+
+    @Override
+    public void sendEmailCode(String email) throws MessagingException {
+        emailUtil.sendCode(email);
+    }
+
 	/**
 	 * 用户注册
 	 * @param 
@@ -240,10 +255,11 @@ public class UserInfoServiceImpl implements UserInfoService {
 	}
 	
 	/**
-	 * 用户登录
-	 *
-	 * @param
-	 * @return
+	 * 用户密码登录
+	 * @param email 邮箱
+     * @param password 密码(前端已做md5加密)
+     * @param ip 登录ip
+	 * @return TokenUserInfoDto
 	 * @author fz
 	 * 2024/12/5 15:39
 	 */
@@ -251,7 +267,7 @@ public class UserInfoServiceImpl implements UserInfoService {
 	public TokenUserInfoDto login(String email, String password, String ip) {
 		// 拿到账号信息
 		UserInfo userInfo = userInfoMapper.selectByEmail(email);
-		// 如果账号不存在或密码错误
+		// 如果账号不存在或密码错误(前端对密码已做md5加密)
 		if (userInfo == null || !userInfo.getPassword().equals(password)){
 			throw new BusinessException("账号不存在或密码有误");
 		}
@@ -264,12 +280,17 @@ public class UserInfoServiceImpl implements UserInfoService {
 		updateInfo.setLastLoginIp(ip);
 		updateInfo.setLastLoginTime(new Date());
 		userInfoMapper.updateByUserId(updateInfo,userInfo.getUserId());
-
+        // Sa-Token 为这个账号创建了一个Token凭证，且通过 Cookie 上下文返回给了前端。
+        StpUtil.login(userInfo.getUserId());
 		// 将信息存入tokenInfoDto
 		TokenUserInfoDto tokenUserInfoDto = CopyTools.copy(userInfo, TokenUserInfoDto.class);
-		// 将tokenInfoDto存入redis
-		redisComponent.saveTokenInfo(tokenUserInfoDto);
-
+		//redisComponent.saveTokenInfo(tokenUserInfoDto);// 将tokenInfoDto存入redis
+        tokenUserInfoDto.setToken(StpUtil.getTokenValue());
+        // 设置过期时间
+        //tokenUserInfoDto.setExpireAt(System.currentTimeMillis() + Constants.REDIS_KEY_EXPIRES_SEVEN_DAY);
+        tokenUserInfoDto.setExpireAt(System.currentTimeMillis() + StpUtil.getTokenTimeout() * 1000);
+        //这里的SaSession对象与httpSession是完全不相同的，Account-Session (必须是登录后才能调用)
+        StpUtil.getSession().set(CURRENT_USER, tokenUserInfoDto);
 		return tokenUserInfoDto;
 	}
 
@@ -370,4 +391,5 @@ public class UserInfoServiceImpl implements UserInfoService {
 		userInfo.setStatus(status);
 		userInfoMapper.updateByUserId(userInfo,userId);
 	}
+
 }

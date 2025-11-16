@@ -7,50 +7,74 @@
     <conversionRule conversionWord="wEx"
                     converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
 
-    <property  name="LOG_PATH" value="./log"/>
-    <property  name="LOG_LEVEL" value="debug"/>
-    <property  name="APP_NAME" value="app"/>
+    <!--定义日志文件的存储地址 -->
+    <property name="LOG_HOME" value="./logs"/>
 
     <property name="CONSOLE_LOG_PATTERN"
               value="${CONSOLE_LOG_PATTERN:-%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
 
+
+    <property name="COLOR_PATTERN"
+              value="%black(%contextName-) %red(%d{yyyy-MM-dd HH:mm:ss}) %green([%thread]) %highlight(%-5level) %boldMagenta( %replace(%caller{1}){'\t|Caller.{1}0|\r\n', ''})- %gray(%msg%xEx%n)"/>
+
     <!-- 控制台输出 -->
-    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+    <appender name="STDOUT"
+              class="ch.qos.logback.core.ConsoleAppender">
+        <encoder
+                class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符 -->
-            <!-- <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern> -->
-            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}:%L - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <property name="LOG_FOLDER" value="logs"/>
 
-    <!-- 按照每天生成日志文件，所有级别都输出到这里。 -->
-    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/${LOG_FOLDER}/${APP_NAME}.log</file>
-        <!-- 使用现代策略：按天 + 大小滚动 -->
+
+    <!-- 按照每天生成日志文件 -->
+    <appender name="FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/admin-info.log</file>
+
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/${LOG_FOLDER}/${APP_NAME}.%d{yyyyMMdd}.%i.log</fileNamePattern>
-            <maxFileSize>20MB</maxFileSize>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+            <!--日志文件输出的文件名 -->
+            <FileNamePattern>${LOG_HOME}/weblive-admin-info.%d{yyyy-MM-dd}.%i.log</FileNamePattern>
+            <!--日志文件保留天数 -->
+            <MaxHistory>2</MaxHistory>
+            <!--日志文件最大的大小-->
+            <MaxFileSize>10MB</MaxFileSize>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <charset>utf-8</charset>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符 -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}:%L - %msg%n</pattern>
         </encoder>
-        <append>true</append>
-        <prudent>false</prudent>
     </appender>
 
-    <!-- 异步包装，避免业务线程阻塞在 I/O 上 -->
-    <appender name="asyncFile" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>8192</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <neverBlock>true</neverBlock>
-        <appender-ref ref="file"/>
+
+    <!-- level为 ERROR 日志，时间滚动输出  -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 正在记录的日志文档的路径及文档名 -->
+        <file>${LOG_HOME}/admin-error.log</file>
+        <!--日志文档输出格式-->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}:%L - %msg%n</pattern>
+            <charset>UTF-8</charset> <!-- 此处设置字符集 -->
+        </encoder>
+        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/weblive-admin-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFileNamingAndTriggeringPolicy">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!--日志文档保留天数-->
+            <maxHistory>2</maxHistory>
+        </rollingPolicy>
+        <!-- 此日志文档只记录ERROR级别的 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
     </appender>
+
 
     <!-- 包级别-->
     <logger name="org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener" level="error"/>
@@ -73,9 +97,10 @@
 
 
 
-    <root level="${log.root.level}">
-        <appender-ref ref="stdout"/>
-        <appender-ref ref="asyncFile"/>
+    <!-- 日志输出级别 -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
     </root>
-
 </configuration>

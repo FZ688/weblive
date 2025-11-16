@@ -1,12 +1,12 @@
 package com.fz.web.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.component.KafkaComponent;
-import com.fz.web.annotation.GlobalInterceptor;
 import com.fz.component.RedisComponent;
 import com.fz.entity.config.AppConfig;
 import com.fz.entity.constants.Constants;
 import com.fz.entity.dto.SysSettingDto;
-import com.fz.entity.dto.TokenUserInfoDto;
 import com.fz.entity.dto.UploadingFileDto;
 import com.fz.entity.dto.VideoPlayInfoDto;
 import com.fz.entity.enums.DateTimePatternEnum;
@@ -79,19 +79,18 @@ public class FileController extends ABaseController {
 
     /**
      * 视频预上传
-     *
      * @param chunks 文件分为多少片，由前端完成分片，使用JavaScript的 File API获取文件对象，并使用slice(方法将文件切割为多个切片。
      * @return
      * @author fz
      * 2024/12/8 11:43
      */
     @RequestMapping("/preUploadVideo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO preUploadVideo(HttpServletRequest request, @NotEmpty String fileName, @NotNull Integer chunks) {
+    @SaCheckLogin
+    public ResponseVO preUploadVideo(@NotEmpty String fileName, @NotNull Integer chunks) {
         // 根据token从redis拿出信息
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         // 将预上传的文件信息保存到redis
-        String uploadId = redisComponent.savePreVideoFileInfo(tokenUserInfoDto.getUserId(), fileName, chunks);
+        String uploadId = redisComponent.savePreVideoFileInfo(StpUtil.getLoginIdAsString(), fileName, chunks);
         return getSuccessResponseVO(uploadId);
     }
 
@@ -104,12 +103,12 @@ public class FileController extends ABaseController {
      * 2024/12/8 13:17
      */
     @RequestMapping("/uploadVideo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO uploadVideo(HttpServletRequest request, @NotNull MultipartFile chunkFile, @NotNull Integer chunkIndex, @NotNull String uploadId) throws IOException {
+    @SaCheckLogin
+    public ResponseVO uploadVideo(@NotNull MultipartFile chunkFile, @NotNull Integer chunkIndex, @NotNull String uploadId) throws IOException {
         // 根据token去拿用户信息
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         // 取出视频文件的信息
-        UploadingFileDto fileDto = redisComponent.getUploadVideoFileInfo(tokenUserInfoDto.getUserId(), uploadId);
+        UploadingFileDto fileDto = redisComponent.getUploadVideoFileInfo(StpUtil.getLoginIdAsString(), uploadId);
         if (fileDto == null) {
             throw new BusinessException("文件过期 请重新上传");
         }
@@ -132,31 +131,30 @@ public class FileController extends ABaseController {
         // 更新视频文件信息
         fileDto.setChunkIndex(chunkIndex);
         fileDto.setFileSize(fileDto.getFileSize() + chunkFile.getSize());
-        redisComponent.updateVideoFileInfo(tokenUserInfoDto.getUserId(), fileDto);
+        redisComponent.updateVideoFileInfo(StpUtil.getLoginIdAsString(), fileDto);
         return getSuccessResponseVO(null);
     }
 
 
     /**
      * 当文件成功上传到服务器后，在前端页面可以点击选择删除该视频
-     * @param request
-     * @param uploadId
+     * @param uploadId 上传id
      * @return
      * @throws IOException
      */
     @RequestMapping("/delUploadVideo")
-    @GlobalInterceptor(checkLogin = true)
-    public ResponseVO delUploadVideo(HttpServletRequest request, @NotEmpty String uploadId) throws IOException {
+    @SaCheckLogin
+    public ResponseVO delUploadVideo(@NotEmpty String uploadId) throws IOException {
         // 根据token取出uid
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         // 根据uid取出文件信息
-        UploadingFileDto fileDto = redisComponent.getUploadVideoFileInfo(tokenUserInfoDto.getUserId(), uploadId);
+        UploadingFileDto fileDto = redisComponent.getUploadVideoFileInfo(StpUtil.getLoginIdAsString(), uploadId);
         // 文件信息不存在
         if (fileDto == null){
             throw  new BusinessException("文件不存在 请重新上传");
         }
         // 删除文件信息
-        redisComponent.delVideoInfo(tokenUserInfoDto.getUserId(),uploadId);
+        redisComponent.delVideoInfo(StpUtil.getLoginIdAsString(),uploadId);
         // 删除文件
         FileUtils.deleteDirectory(new File(appConfig.getProjectFolder() + Constants.FILE_FOLDER + Constants.FILE_FOLDER_TEMP + fileDto.getFilePath()));
         return getSuccessResponseVO(uploadId);
@@ -170,7 +168,7 @@ public class FileController extends ABaseController {
      * 2024/12/8 15:28
      */
     @RequestMapping("/uploadImage")
-    @GlobalInterceptor(checkLogin = true)
+    @SaCheckLogin
     public ResponseVO uploadImage(@NotNull MultipartFile file,@NotNull Boolean createThumbnail) throws IOException {
         // 获取文件后缀
         String fileSuffix = StringTools.getFileSuffix(file.getOriginalFilename());
@@ -218,9 +216,8 @@ public class FileController extends ABaseController {
 
         // 这个请求是播放器发过来的 没有token
         // 因此需要去cookie中取数据
-        TokenUserInfoDto tokenUserInfoDto = getTokenInfoFromCookie();
-        if (tokenUserInfoDto != null){
-            videoPlayInfoDto.setUserId(tokenUserInfoDto.getUserId());
+        if (StpUtil.isLogin()) {
+            videoPlayInfoDto.setUserId(StpUtil.getLoginIdAsString());
         }
         // 将视频的播放信息加入消息队列 异步处理
         //redisComponent.addVideoPlay(videoPlayInfoDto);

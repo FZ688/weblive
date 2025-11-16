@@ -1,5 +1,6 @@
 package com.fz.admin.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.fz.entity.config.AppConfig;
 import com.fz.entity.constants.Constants;
 import com.fz.entity.enums.DateTimePatternEnum;
@@ -51,6 +52,7 @@ public class FileController extends ABaseController {
      * @author fz
      * 2024/12/7 21:58
      */
+    @SaCheckRole("admin")
     @RequestMapping("/uploadImage")
     public ResponseVO uploadImage(@NotNull MultipartFile file, @NotNull Boolean createThumbnail) throws IOException {
         // 定义文件夹 一个月为一个大目录

@@ -19,8 +19,8 @@ public class StringTools {
                 String methodName = "get" + StringTools.upperCaseFirstLetter(field.getName());
                 Method method = param.getClass().getMethod(methodName);
                 Object object = method.invoke(param);
-                if (object != null && object instanceof java.lang.String && !StringTools.isEmpty(object.toString())
-                        || object != null && !(object instanceof java.lang.String)) {
+                if (object != null && object instanceof String && !StringTools.isEmpty(object.toString())
+                        || object != null && !(object instanceof String)) {
                     notEmpty = true;
                     break;
                 }

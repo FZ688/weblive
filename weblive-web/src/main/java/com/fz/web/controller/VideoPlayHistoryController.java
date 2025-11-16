@@ -1,20 +1,21 @@
 package com.fz.web.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.entity.dto.TokenUserInfoDto;
 import com.fz.entity.query.VideoPlayHistoryQuery;
 import com.fz.entity.vo.ResponseVO;
 import com.fz.service.VideoPlayHistoryService;
-import com.fz.web.annotation.GlobalInterceptor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
 
 
 @RestController
 @RequestMapping("/history")
+@SaCheckLogin
 public class VideoPlayHistoryController extends ABaseController{
 
 	@Resource
@@ -22,18 +23,16 @@ public class VideoPlayHistoryController extends ABaseController{
 
 	/**
 	 * @description: 获取历史记录
-	 * @param request
-	 * @param pageNo
+	 * @param pageNo 页码
 	 * @return com.fz.entity.vo.ResponseVO
 	 * @author fz
 	 * 2025/1/14 21:47
 	 */
 	@RequestMapping("/loadHistory")
-	@GlobalInterceptor(checkLogin = true)
-	public ResponseVO loadHistory(HttpServletRequest request,Integer pageNo){
-		TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+	public ResponseVO loadHistory(Integer pageNo){
+		TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
 		VideoPlayHistoryQuery historyQuery = new VideoPlayHistoryQuery();
-		historyQuery.setUserId(tokenUserInfoDto.getUserId());
+		historyQuery.setUserId(StpUtil.getLoginIdAsString());
 		historyQuery.setPageNo(pageNo);
 		historyQuery.setOrderBy("last_update_time desc");
 		historyQuery.setQueryVideoDetail(true);
@@ -43,34 +42,29 @@ public class VideoPlayHistoryController extends ABaseController{
 
 	/**
 	 * @description: 删除所有历史记录
-	 * @param request
 	 * @return com.fz.entity.vo.ResponseVO
 	 * @author fz
 	 * 2025/1/14 22:03
 	 */
 	@RequestMapping("/cleanHistory")
-	@GlobalInterceptor(checkLogin = true)
-	public ResponseVO cleanHistory(HttpServletRequest request){
-		TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+	public ResponseVO cleanHistory(){
 		VideoPlayHistoryQuery historyQuery = new VideoPlayHistoryQuery();
-		historyQuery.setUserId(tokenUserInfoDto.getUserId());
+		historyQuery.setUserId(StpUtil.getLoginIdAsString());
 		videoPlayHistoryService.deleteByParam(historyQuery);
 		return getSuccessResponseVO(null);
 	}
 
 	/**
 	 * @description: 删除单个记录
-	 * @param request
 	 * @param videoId
 	 * @return com.fz.entity.vo.ResponseVO
 	 * @author fz
 	 * 2025/1/14 22:05
 	 */
 	@RequestMapping("/delHistory")
-	@GlobalInterceptor(checkLogin = true)
-	public ResponseVO cleanHistory(HttpServletRequest request,@NotEmpty String videoId){
-		TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
-		videoPlayHistoryService.deleteVideoPlayHistoryByUserIdAndVideoId(tokenUserInfoDto.getUserId(),videoId);
+	public ResponseVO cleanHistory(@NotEmpty String videoId){
+		//TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
+		videoPlayHistoryService.deleteVideoPlayHistoryByUserIdAndVideoId(StpUtil.getLoginIdAsString(),videoId);
 		return getSuccessResponseVO(null);
 	}
 }

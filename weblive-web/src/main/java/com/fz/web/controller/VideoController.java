@@ -1,9 +1,9 @@
 package com.fz.web.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.component.EsSearchComponent;
 import com.fz.component.RedisComponent;
 import com.fz.entity.constants.Constants;
-import com.fz.entity.dto.TokenUserInfoDto;
 import com.fz.entity.enums.*;
 import com.fz.entity.po.UserAction;
 import com.fz.entity.po.VideoInfo;
@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,9 +71,10 @@ public class VideoController extends ABaseController {
 
     /**
      * 加载未推荐的视频
-     *
-     * @param
-     * @return
+     * @param pCategoryId 一级分类ID
+     * @param categoryId 二级分类ID
+     * @param pageNo 页码
+     * @return ResponseVO
      * @author fz
      * 2024/12/9 22:48
      */
@@ -101,7 +101,7 @@ public class VideoController extends ABaseController {
      * 2024/12/10 21:43
      */
     @RequestMapping("/getVideoInfo")
-    public ResponseVO getVideoInfo(HttpServletRequest request,@NotEmpty String videoId) {
+    public ResponseVO getVideoInfo(@NotEmpty String videoId) {
         // 查出视频详细信息
         VideoInfo videoInfo = this.videoInfoService.getVideoInfoByVideoId(videoId);
         if (videoInfo == null) {
@@ -109,12 +109,12 @@ public class VideoController extends ABaseController {
         }
         // 获取用户所有的行为:是否点赞 投币 收藏
         List<UserAction> userActionList = new ArrayList<>();
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto(request);
+        //TokenUserInfoDto tokenUserInfoDto = getCurrentUser();
         // 如果登录了
-        if (tokenUserInfoDto != null){
+        if (StpUtil.isLogin()){
             // 取出来
             UserActionQuery userActionQuery = new UserActionQuery();
-            userActionQuery.setUserId(tokenUserInfoDto.getUserId());
+            userActionQuery.setUserId(StpUtil.getLoginIdAsString());
             userActionQuery.setVideoId(videoId);
             userActionQuery.setActionTypeArray(new Integer[]{
                     UserActionTypeEnum.VIDEO_LIKE.getType(),
@@ -142,6 +142,7 @@ public class VideoController extends ABaseController {
         List<VideoInfoFile> resultVO  = videoInfoFileService.findListByParam(videoInfoFileQuery);
         return getSuccessResponseVO(resultVO);
     }
+
     /**
      * @description:  轮询上报视频在线观看人数
      * @param fileId 分p的id

@@ -1,5 +1,6 @@
 package com.fz.admin.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.fz.entity.po.CategoryInfo;
 import com.fz.entity.query.CategoryInfoQuery;
 import com.fz.entity.vo.ResponseVO;
@@ -25,6 +26,7 @@ import java.util.List;
 public class CategoryController extends ABaseController {
     @Resource
     private CategoryInfoService categoryInfoService;
+
     /**
      * 根据查询参数查询分类
      * @param
@@ -43,7 +45,6 @@ public class CategoryController extends ABaseController {
         List<CategoryInfo> categoryInfoList = categoryInfoService.findListByParam(query);
         // 返回结果
         return getSuccessResponseVO(categoryInfoList);
-
     }
 
     /**
@@ -53,7 +54,7 @@ public class CategoryController extends ABaseController {
      * @author fz
      * 2024/12/7 15:53
      */
-
+    @SaCheckRole("admin")
     @RequestMapping("/saveCategory")
     public ResponseVO saveCategory(Integer categoryId,
                                    @NotEmpty String categoryCode,
@@ -73,11 +74,13 @@ public class CategoryController extends ABaseController {
         return getSuccessResponseVO(null);
     }
 
+    @SaCheckRole("admin")
     @RequestMapping("/delCategory")
     public ResponseVO delCategory(@NotNull Integer categoryId){
         categoryInfoService.delCategoryById(categoryId);
         return getSuccessResponseVO(null);
     }
+
     /**
      * 改变分类顺序
      * @param categoryIds 排好序的分区id
@@ -85,6 +88,7 @@ public class CategoryController extends ABaseController {
      * @author fz
      * 2024/12/7 18:00
      */
+    @SaCheckRole("admin")
     @RequestMapping("/changeSort")
     public ResponseVO changeSort(@NotEmpty String categoryIds){
         categoryInfoService.changeSort(categoryIds);

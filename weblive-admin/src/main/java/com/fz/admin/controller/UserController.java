@@ -1,5 +1,6 @@
 package com.fz.admin.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.fz.entity.query.UserInfoQuery;
 import com.fz.entity.vo.ResponseVO;
 import com.fz.service.UserInfoService;
@@ -29,6 +30,7 @@ public class UserController extends ABaseController{
        return getSuccessResponseVO(userInfoService.findListByPage(userInfoQuery));
     }
 
+    @SaCheckRole("admin")
     @RequestMapping("/changeStatus")
     public ResponseVO loadUser(String userId,Integer status){
         userInfoService.changeUserStatus(userId,status);

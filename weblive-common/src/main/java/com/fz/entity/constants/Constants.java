@@ -13,6 +13,7 @@ public class Constants {
     public static final Integer TEN = 10;
     public static final Integer ZERO = 0;
     public static final Integer ONE = 1;
+    public  static final Integer LENGTH_6 = 6 ;
     public static final Integer LENGTH_10 = 10;
     public static final Integer LENGTH_15 = 15;
     public static final Integer LENGTH_30 = 30;
@@ -22,6 +23,11 @@ public class Constants {
     public static final String REDIS_KEY_PREFIX = "weblive:";
     // redis验证码前缀
     public static final String REDIS_KEY_CHECK_CODE = REDIS_KEY_PREFIX +  "checkcode:";
+    // 邮箱验证码前缀
+    public static final String REDIS_KEY_EMAIL_CODE = REDIS_KEY_PREFIX +  "email:code:";
+    //
+    public static final String REDIS_KEY_EMAIL_CODE_LIMIT = REDIS_KEY_PREFIX + "email:code:limit:";
+
     // redis key过期时间,一分钟
     public static final Integer REDIS_KEY_EXPIRES_ONE_MIN = 1000 * 60;
 
@@ -44,6 +50,9 @@ public class Constants {
     public static final String TOKEN_WEB = "token";
     // token for admin server
     public static final String TOKEN_ADMIN = "adminToken";
+    //
+    public static final String CURRENT_USER = "current_user";
+
 
     public static final String REDIS_KEY_CATEGORY_LIST = REDIS_KEY_PREFIX + "category:list:";
 
@@ -105,4 +114,6 @@ public class Constants {
 
     //json文件后缀 .json
     public static final String JSON_FILE_SUFFIX  = ".json";
+
+    public static final String RATE_LIMIT_KEY = "rate_limit:";
 }

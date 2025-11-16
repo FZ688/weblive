@@ -1,5 +1,6 @@
 package com.fz.admin.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.fz.annotation.RecordUserMessage;
 import com.fz.entity.enums.MessageTypeEnum;
 import com.fz.entity.po.VideoInfoFilePost;
@@ -65,6 +66,7 @@ public class VideoInfoController extends ABaseController {
      * @author fz
      * 2024/12/10 17:00
      */
+    @SaCheckRole("admin")
     @RequestMapping("/auditVideo")
     @RecordUserMessage(messageType = MessageTypeEnum.SYS)
     public ResponseVO auditVideo(@NotEmpty String videoId, @NotNull Integer status, String reason){
@@ -79,6 +81,7 @@ public class VideoInfoController extends ABaseController {
      * @author fz
      * 2025/1/16 10:41
      */
+    @SaCheckRole("admin")
     @RequestMapping("/recommendVideo")
     public ResponseVO recommendVideo(@NotEmpty String videoId){
         videoInfoService.recommendVideo(videoId);
@@ -92,6 +95,7 @@ public class VideoInfoController extends ABaseController {
      * @author fz
      * 2025/1/16 10:42
      */
+    @SaCheckRole("admin")
     @RequestMapping("/deleteVideo")
     public ResponseVO deleteVideo(@NotEmpty String videoId){
         videoInfoService.deleteVideo(videoId,null);
@@ -100,7 +104,7 @@ public class VideoInfoController extends ABaseController {
 
     /**
      * @description: 加载分P信息
-     * @param videoId
+     * @param videoId 视频id
      * @return com.fz.entity.vo.ResponseVO
      * @author fz
      * 2025/1/16 10:56

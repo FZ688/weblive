@@ -1,21 +1,22 @@
 package com.fz.admin.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.component.RedisComponent;
 import com.fz.entity.config.AppConfig;
 import com.fz.entity.constants.Constants;
+import com.fz.entity.enums.EnableStatus;
+import com.fz.entity.po.SysUser;
 import com.fz.entity.vo.ResponseVO;
 import com.fz.exception.BusinessException;
-import com.fz.service.UserInfoService;
+import com.fz.service.SysUserService;
 import com.fz.utils.StringTools;
 import com.wf.captcha.ArithmeticCaptcha;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,19 +29,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/account")
 @Validated
+@Slf4j
 public class AccountController extends ABaseController {
 
     @Resource
-    private UserInfoService userInfoService;
+    private SysUserService sysUserService;
     @Resource
     private RedisComponent redisComponent;
 
-    @Resource
-    private AppConfig appConfig;
     /**
      * 用于用户登录/注册时将验证码数据存入redis
-     *
-     * @param
      * @return VO
      * @author fz
      * 2024/12/4 22:15
@@ -63,11 +61,9 @@ public class AccountController extends ABaseController {
     }
 
     /**
-     * 用户登录
-     * @param request HttpServletRequest
-     * @param response HttpServletResponse
+     * 用户密码登录
      * @param account 账号
-     * @param password 密码
+     * @param password 密码,前端已经做过md5加密
      * @param checkCodeKey 验证码key
      * @param checkCode 验证码
      * @return VO
@@ -75,8 +71,7 @@ public class AccountController extends ABaseController {
      * 2024/12/5 19:28
      */
     @RequestMapping("/login")
-    public ResponseVO login(HttpServletRequest request, HttpServletResponse response,
-                            @NotEmpty String account,
+    public ResponseVO login(@NotEmpty String account,
                             @NotEmpty String password,
                             @NotEmpty String checkCodeKey,
                             @NotEmpty String checkCode) {
@@ -85,35 +80,23 @@ public class AccountController extends ABaseController {
             if (!checkCode.equalsIgnoreCase(redisComponent.getCheckCode(checkCodeKey))) {
                 throw new BusinessException("图片验证码错误");
             }
+            SysUser sysUser = sysUserService.lambdaQuery().eq(SysUser::getLoginNo, account).one();
             // 去配置文件中读取管理员信息 比较是否一致
-            if (!account.equals(appConfig.getAdminAccount()) || !password.equals(StringTools.encodeByMd5(appConfig.getAdminPassword()))){
-                throw new BusinessException("账号或密码错误");
+            if (sysUser == null) {
+                throw new BusinessException("账号或密码错误,登录失败");
             }
-            // 将管理员信息存入redis
-            String token = redisComponent.saveTokenInfoForAdmin(account);
-            // 存入cookie 以后会把token自动会携带过来
-            saveTokenToCookie(response,token);
+            if (!sysUser.getPassword().equals(password)) {
+                throw new BusinessException("账号或密码错误,登录失败");
+            }
+            if (EnableStatus.disable.equals(sysUser.getStatus())) {
+                throw new BusinessException("用户已失效,登录失败");
+            }
+            StpUtil.login(sysUser.getId());
             // 将信息返回前端 实际上还应该将token返回给前端 但是这个项目里前端从cookie中取了token
             return getSuccessResponseVO(account);
         } finally {
             // 删除redis中图片验证码
             redisComponent.cleanCheckCode(checkCodeKey);
-            // 删除redis中该用户的以前的token
-            // 从cookie中取出token
-            String token = null;
-            Cookie[] cookies = request.getCookies();
-            if (cookies != null) {
-                for (Cookie cookie : cookies) {
-                    if (cookie.getName().equals(Constants.TOKEN_ADMIN)) {
-                        token = cookie.getName();
-                        break;
-                    }
-                }
-                // 从redis中删除这个用户的token
-                if (!StringTools.isEmpty(token)) {
-                    redisComponent.cleanTokenForAdmin(token);
-                }
-            }
         }
     }
 
@@ -126,9 +109,13 @@ public class AccountController extends ABaseController {
      * 2024/12/5 19:34
      */
     @RequestMapping("/logout")
-    public ResponseVO logout(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseVO logout() {
         // 清除redis与cookie中的cookie
-        cleanCookies(request, response);
+        // Sa-Token 会自动:
+        // 1. 清除浏览器 Cookie (设置 maxAge=0)
+        // 2. 删除 Redis 中的 token 数据
+        // 3. 清除 Session 数据
+        StpUtil.logout();
         return getSuccessResponseVO(null);
     }
 }

@@ -1,5 +1,7 @@
 package com.fz.web.controller;
 
+import cn.dev33.satoken.session.SaSession;
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.component.RedisComponent;
 import com.fz.entity.constants.Constants;
 import com.fz.entity.dto.TokenUserInfoDto;
@@ -13,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import static com.fz.entity.constants.Constants.CURRENT_USER;
 
 
 public class ABaseController {
@@ -105,17 +108,18 @@ public class ABaseController {
     }
 
     /**
-     * 从redis中取出token对应的信息
-     *
+     * 从account session中取出当前用户对应的信息
      * @param
      * @return
      * @author fz
      * 2024/12/5 19:13
      */
-    protected TokenUserInfoDto getTokenUserInfoDto(HttpServletRequest request) {
-        // 前端将token放在请求头中传到后端
-        String token = request.getHeader(Constants.TOKEN_WEB);
-        return redisComponent.getTokenInfo(token);
+    protected TokenUserInfoDto getCurrentUser() {
+        if (!StpUtil.isLogin()) {
+            return null;
+        }
+        SaSession session = StpUtil.getSession();
+        return session == null ? null : session.getModel(CURRENT_USER, TokenUserInfoDto.class);
     }
 
     /**
@@ -125,7 +129,6 @@ public class ABaseController {
      * @author fz
      * 2024/12/5 19:37
      */
-
     protected void cleanCookies(HttpServletRequest request,HttpServletResponse response){
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
@@ -148,7 +151,6 @@ public class ABaseController {
      * @author fz
      * 2025/1/14 12:26
      */
-
     public TokenUserInfoDto getTokenInfoFromCookie(){
         HttpServletRequest request = ((ServletRequestAttributes)RequestContextHolder.getRequestAttributes()).getRequest();
         String token = getTokenFromCookie(request);
@@ -158,6 +160,7 @@ public class ABaseController {
         return redisComponent.getTokenInfo(token);
 
     }
+
     /**
      * @description: 从cookie中拿token
      * @param request
@@ -165,7 +168,6 @@ public class ABaseController {
      * @author fz
      * 2025/1/14 12:24
      */
-
     private String getTokenFromCookie(HttpServletRequest request){
         Cookie[] cookies = request.getCookies();
         if (cookies == null){

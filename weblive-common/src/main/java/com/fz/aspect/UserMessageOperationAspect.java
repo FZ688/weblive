@@ -1,5 +1,6 @@
 package com.fz.aspect;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.fz.annotation.RecordUserMessage;
 import com.fz.component.RedisComponent;
 import com.fz.entity.constants.Constants;
@@ -111,13 +112,8 @@ public class UserMessageOperationAspect {
         if (UserActionTypeEnum.VIDEO_COLLECT.getType().equals(actionType)){
             messageTypeEnum = MessageTypeEnum.COLLECTION;
         }
-        TokenUserInfoDto tokenUserInfoDto = getTokenUserInfoDto();
         // 保存用户消息,管理端获取不到用户信息，系统发送，不需要用户id
-        userMessageService.saveUserMessage(videoId,tokenUserInfoDto == null ? null : tokenUserInfoDto.getUserId(),messageTypeEnum,content,replyCommentId);
+        userMessageService.saveUserMessage(videoId, StpUtil.isLogin() ? null : StpUtil.getLoginIdAsString(),messageTypeEnum,content,replyCommentId);
     }
-    public TokenUserInfoDto getTokenUserInfoDto(){
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String token = request.getHeader(Constants.TOKEN_WEB);
-        return redisComponent.getTokenInfo(token);
-    }
+
 }

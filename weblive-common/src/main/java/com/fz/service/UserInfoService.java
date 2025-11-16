@@ -7,6 +7,7 @@ import com.fz.entity.dto.UserCountInfoDto;
 import com.fz.entity.query.UserInfoQuery;
 import com.fz.entity.po.UserInfo;
 import com.fz.entity.vo.PaginationResultVO;
+import jakarta.mail.MessagingException;
 
 
 /**
@@ -145,4 +146,6 @@ public interface UserInfoService {
 	UserCountInfoDto getUserCountInfo(String userId);
 
 	void changeUserStatus(String userId,Integer status);
+
+    void sendEmailCode(String email) throws MessagingException;
 }
