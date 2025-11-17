@@ -3,11 +3,14 @@ package com.fz.web.controller;
 import java.util.HashMap;
 import java.util.Map;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.StpUtil;
 import com.fz.annotation.RLimit;
 import com.fz.component.RedisComponent;
 import com.fz.entity.dto.TokenUserInfoDto;
 import com.fz.entity.dto.UserCountInfoDto;
+import com.fz.entity.po.UserInfo;
 import com.fz.entity.vo.ResponseVO;
 import com.fz.exception.BusinessException;
 import com.fz.service.UserInfoService;
@@ -66,10 +69,45 @@ public class AccountController extends ABaseController {
         return getSuccessResponseVO(map);
     }
 
+    /**
+     * 发送邮箱验证码
+     * @param email 邮箱
+     * @return null
+     * @throws MessagingException
+     */
     @RequestMapping(value = "/sendEmailCode")
     @RLimit(count = 1 , time = 60)
     public ResponseVO sendEmailCode(@NotEmpty @Email @Size(max = 150) String email) throws MessagingException {
         userInfoService.sendEmailCode(email);
+        return getSuccessResponseVO(null);
+    }
+
+    /**
+     * 发送重置密码邮箱验证码
+     * @param email 邮箱
+     * @return null
+     * @throws MessagingException
+     */
+    @RequestMapping(value = "/sendResetEmailCode")
+    @RLimit(count = 1 , time = 60)
+    public ResponseVO sendResetEmailCode(@NotEmpty @Email @Size(max = 150) String email) throws MessagingException {
+        if (userInfoService.getUserInfoByEmail(email) == null) {
+            throw new BusinessException("当前邮箱未注册，请先注册");
+        }
+        userInfoService.sendEmailCode(email);
+        return getSuccessResponseVO(null);
+    }
+
+
+    @RequestMapping(value = "/sendChangeEmailCode")
+    @RLimit(count = 1 , time = 60)
+    @SaCheckLogin
+    public ResponseVO sendChangeEmailCode() throws MessagingException {
+        UserInfo userInfo = userInfoService.getUserInfoByUserId(StpUtil.getLoginIdAsString());
+        if (userInfo == null || StringTools.isEmpty(userInfo.getEmail())) {
+            throw new BusinessException("账号信息异常，请重新登录");
+        }
+        userInfoService.sendEmailCode(userInfo.getEmail());
         return getSuccessResponseVO(null);
     }
 
@@ -106,6 +144,63 @@ public class AccountController extends ABaseController {
             redisComponent.cleanCheckCode(checkCodeKey);
         }
     }
+
+    /**
+     * 用户重置密码
+     * @param email 邮箱
+     * @param newPassword 新密码
+     * @param emailCode 邮箱验证码
+     * @param checkCodeKey 图片验证码key
+     * @param checkCode 图片验证码
+     * @return
+     */
+    @RequestMapping("/resetPassword")
+    public ResponseVO resetPassword(@NotEmpty @Email String email,
+                                    @NotEmpty @Pattern(regexp = PASSWORD_REGEX) String newPassword,
+                                    @NotEmpty @Size(min = 6,max = 6) String emailCode,
+                                    @NotEmpty String checkCodeKey,
+                                    @NotEmpty String checkCode) {
+        try {
+            if (!checkCode.equalsIgnoreCase(redisComponent.getCheckCode(checkCodeKey))) {
+                throw new BusinessException("图片验证码错误");
+            }
+            String cacheEmailCode = redisComponent.getEmailCode(email);
+            if (StringTools.isEmpty(cacheEmailCode) || !cacheEmailCode.equals(emailCode)) {
+                throw new BusinessException("邮箱验证码错误或已过期");
+            }
+            userInfoService.resetPassword(email, newPassword);
+            redisComponent.cleanEmailCode(email);
+            return getSuccessResponseVO(null);
+        } finally {
+            redisComponent.cleanCheckCode(checkCodeKey);
+        }
+    }
+
+    /**
+     * 用户修改密码
+     * @param oldPassword 旧密码
+     * @param newPassword 新密码
+     * @return
+     */
+    @SaCheckLogin
+    @RequestMapping("/changePassword")
+    public ResponseVO changePassword(@NotEmpty String oldPassword,
+                                     @NotEmpty @Pattern(regexp = PASSWORD_REGEX) String newPassword,
+                                     @NotEmpty @Size(min = 6,max = 6) String emailCode) {
+        UserInfo userInfo = userInfoService.getUserInfoByUserId(StpUtil.getLoginIdAsString());
+        if (userInfo == null) {
+            throw new BusinessException("账号状态异常，请重新登录");
+        }
+        String cacheEmailCode = redisComponent.getEmailCode(userInfo.getEmail());
+        if (StringTools.isEmpty(cacheEmailCode) || !cacheEmailCode.equals(emailCode)) {
+            throw new BusinessException("邮箱验证码错误或已过期");
+        }
+        userInfoService.changePassword(userInfo.getUserId(), oldPassword, newPassword);
+        redisComponent.cleanEmailCode(userInfo.getEmail());
+        return getSuccessResponseVO(null);
+    }
+
+
 
     /**
      * 用户邮箱密码登录

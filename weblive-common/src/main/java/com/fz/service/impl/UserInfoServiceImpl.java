@@ -392,4 +392,42 @@ public class UserInfoServiceImpl implements UserInfoService {
 		userInfoMapper.updateByUserId(userInfo,userId);
 	}
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetPassword(String email, String newPassword) {
+        UserInfo userInfo = userInfoMapper.selectByEmail(email);
+        if (userInfo == null) {
+            throw new BusinessException("当前邮箱未注册");
+        }
+        String newPwdMd5 = StringTools.encodeByMd5(newPassword);
+        if (newPwdMd5.equals(userInfo.getPassword())) {
+            throw new BusinessException("新密码不能与旧密码一致");
+        }
+        UserInfo update = new UserInfo();
+        update.setPassword(newPwdMd5);
+        userInfoMapper.updateByUserId(update, userInfo.getUserId());
+        // 强制让之前的会话失效
+        StpUtil.logout(userInfo.getUserId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changePassword(String userId, String oldPassword, String newPassword) {
+        UserInfo userInfo = userInfoMapper.selectByUserId(userId);
+        if (userInfo == null) {
+            throw new BusinessException("用户不存在");
+        }
+        String oldPwdMd5 = StringTools.encodeByMd5(oldPassword);
+        if (!oldPwdMd5.equals(userInfo.getPassword())) {
+            throw new BusinessException("原密码不正确");
+        }
+        String newPwdMd5 = StringTools.encodeByMd5(newPassword);
+        if (newPwdMd5.equals(userInfo.getPassword())) {
+            throw new BusinessException("新密码不能与旧密码一致");
+        }
+        UserInfo update = new UserInfo();
+        update.setPassword(newPwdMd5);
+        userInfoMapper.updateByUserId(update, userId);
+        StpUtil.logout(userId);
+    }
 }

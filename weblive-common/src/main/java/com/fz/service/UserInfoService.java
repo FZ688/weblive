@@ -148,4 +148,14 @@ public interface UserInfoService {
 	void changeUserStatus(String userId,Integer status);
 
     void sendEmailCode(String email) throws MessagingException;
+
+    /**
+     * 重置密码
+     */
+    void resetPassword(String email, String newPassword);
+
+    /**
+     * 修改密码
+     */
+    void changePassword(String userId, String oldPassword, String newPassword);
 }
